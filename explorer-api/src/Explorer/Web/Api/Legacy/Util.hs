@@ -16,14 +16,12 @@ module Explorer.Web.Api.Legacy.Util
   , zipTxBrief
   ) where
 
-import Cardano.Chain.Common
-    ( Address, decodeAddressBase58 )
 import Cardano.Db
     ( Block (..), TxId )
+import Cardano.Api.Typed
+    ( deserialiseAddress, Shelley, Address, AsType(AsShelleyAddress) )
 import Control.Monad.IO.Class
     ( MonadIO, liftIO )
-import Data.Bifunctor
-    ( first )
 import Data.ByteString
     ( ByteString )
 import Data.Map.Strict
@@ -72,11 +70,12 @@ collapseTxGroup xs =
     [] -> error "collapseTxGroup: groupOn produced [] on non-empty list (impossible)"
     (x:_) -> (fst x, map snd xs)
 
-decodeTextAddress :: Text -> Either ExplorerError Address
-decodeTextAddress txt =
-  first (const . Internal $ "Unable to decode address " <> txt <> ".")
-    $ decodeAddressBase58 txt
-
+decodeTextAddress :: Text -> Either ExplorerError (Address Shelley)
+decodeTextAddress txt = maybe (Left e) Right addr
+  where
+    e = Internal $ "Unable to decode address " <> txt <> "."
+    addr :: Text -> Address Shelley
+    addr = deserialiseAddress AsShelleyAddress txt
 
 defaultPageSize :: PageSize
 defaultPageSize = PageSize 10
